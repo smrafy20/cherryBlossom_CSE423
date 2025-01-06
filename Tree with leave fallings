@@ -1,0 +1,189 @@
+import OpenGL.GL as gl
+import OpenGL.GLUT as glut
+import OpenGL.GLU as glu
+import math
+import random
+
+# Global variables for falling leaves
+falling_leaves = []
+is_falling = False
+is_paused = False
+leaf_positions = []  # Store leaf positions for reset functionality
+
+class Leaf:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.speed = random.uniform(0.5, 2.0)
+        self.swing = random.uniform(-2, 2)
+        self.color = [0.0, 0.8, 0.0]  # Start with green
+
+    def update(self):
+        if not is_paused:
+            self.y -= self.speed
+            self.x += math.sin(self.y / 20) * self.swing
+
+            # Change color gradually to brown/yellow as it falls
+            if self.y > 100:  # Above ground
+                fall_progress = (600 - self.y) / 500  # Progress of falling
+                self.color[0] = min(0.8, fall_progress)  # Increase red
+                self.color[1] = max(0.4, 0.8 - fall_progress * 0.4)  # Decrease green
+                self.color[2] = 0.0
+
+        return self.y > 100  # Return True if leaf should continue falling
+
+def init():
+    gl.glClearColor(0.529, 0.808, 0.922, 1.0)  # Sky blue background
+    gl.glMatrixMode(gl.GL_PROJECTION)
+    gl.glLoadIdentity()
+    glu.gluOrtho2D(0, 800, 0, 600)
+
+def draw_pixel(x, y):
+    gl.glBegin(gl.GL_POINTS)
+    gl.glVertex2f(x, y)
+    gl.glEnd()
+
+def midpoint_line(x1, y1, x2, y2):
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    x, y = x1, y1
+
+    x_inc = 1 if x2 > x1 else -1
+    y_inc = 1 if y2 > y1 else -1
+
+    if dx > dy:
+        p = 2 * dy - dx
+        for _ in range(dx):
+            draw_pixel(x, y)
+            if p >= 0:
+                y += y_inc
+                p -= 2 * dx
+            x += x_inc
+            p += 2 * dy
+    else:
+        p = 2 * dx - dy
+        for _ in range(dy):
+            draw_pixel(x, y)
+            if p >= 0:
+                x += x_inc
+                p -= 2 * dy
+            y += y_inc
+            p += 2 * dx
+    draw_pixel(x, y)
+
+def midpoint_circle(center_x, center_y, radius):
+    x, y = 0, radius
+    p = 1 - radius
+
+    def plot_circle_points(cx, cy, x, y):
+        draw_pixel(cx + x, cy + y)
+        draw_pixel(cx - x, cy + y)
+        draw_pixel(cx + x, cy - y)
+        draw_pixel(cx - x, cy - y)
+        draw_pixel(cx + y, cy + x)
+        draw_pixel(cx - y, cy + x)
+        draw_pixel(cx + y, cy - x)
+        draw_pixel(cx - y, cy - x)
+
+    while x <= y:
+        plot_circle_points(center_x, center_y, x, y)
+        x += 1
+        if p < 0:
+            p += 2 * x + 1
+        else:
+            y -= 1
+            p += 2 * (x - y) + 1
+
+def draw_tree(x, y, length, angle, depth):
+    if depth > 0:
+        x2 = x + length * math.cos(math.radians(angle))
+        y2 = y + length * math.sin(math.radians(angle))
+
+        # Draw branch
+        gl.glColor3f(0.545, 0.271, 0.075)
+        midpoint_line(int(x), int(y), int(x2), int(y2))
+
+        # Store leaf positions at terminal branches
+        if depth == 1:
+            leaf_positions.append((int(x2), int(y2)))
+            if not is_falling:  # Only draw leaves if they haven't started falling
+                gl.glColor3f(0.0, 0.8, 0.0)
+                midpoint_circle(int(x2), int(y2), 3)
+
+        new_length = length * 0.7
+        draw_tree(x2, y2, new_length, angle - 30, depth - 1)
+        draw_tree(x2, y2, new_length, angle + 30, depth - 1)
+
+def draw_ground():
+    gl.glColor3f(0.0, 0.8, 0.0)
+    gl.glBegin(gl.GL_QUADS)
+    gl.glVertex2f(0, 0)
+    gl.glVertex2f(800, 0)
+    gl.glVertex2f(800, 100)
+    gl.glVertex2f(0, 100)
+    gl.glEnd()
+
+def draw_falling_leaves():
+    for leaf in falling_leaves:
+        gl.glColor3f(leaf.color[0], leaf.color[1], leaf.color[2])
+        midpoint_circle(int(leaf.x), int(leaf.y), 3)
+
+def update_falling_leaves():
+    global falling_leaves
+    if not is_paused:
+        falling_leaves = [leaf for leaf in falling_leaves if leaf.update()]
+    glut.glutPostRedisplay()
+
+def mouse_click(button, state, x, y):
+    global is_falling, falling_leaves
+    if not is_falling and button == glut.GLUT_LEFT_BUTTON and state == glut.GLUT_DOWN:
+        is_falling = True
+        # Initialize falling leaves from stored positions
+        for pos in leaf_positions:
+            falling_leaves.append(Leaf(pos[0], pos[1]))
+
+def keyboard(key, x, y):
+    global is_paused, is_falling, falling_leaves
+    if key == b' ':
+        is_paused = not is_paused  # Toggle pause
+    elif key == b'r' or key == b'R':
+        is_paused = False
+        is_falling = False
+        falling_leaves.clear()  # Reset falling leaves
+        leaf_positions.clear()  # Clear leaf positions to avoid new leaves
+
+def display():
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+
+    draw_ground()
+
+    gl.glPointSize(2.0)
+    draw_tree(600, 100, 100, 90, 9)
+
+
+    if is_falling:
+        draw_falling_leaves()
+        update_falling_leaves()
+
+    glut.glutSwapBuffers()
+
+def timer(value):
+    if is_falling:
+        glut.glutPostRedisplay()
+    glut.glutTimerFunc(16, timer, 0)  # 60 FPS approximately
+
+def main():
+    glut.glutInit()
+    glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGB)
+    glut.glutInitWindowSize(800, 600)
+    glut.glutCreateWindow(b"Falling Leaves Animation")
+
+    init()
+    glut.glutDisplayFunc(display)
+    glut.glutMouseFunc(mouse_click)
+    glut.glutKeyboardFunc(keyboard)
+    glut.glutTimerFunc(0, timer, 0)
+    glut.glutMainLoop()
+
+if __name__ == "__main__":
+    main()
