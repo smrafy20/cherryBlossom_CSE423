@@ -3,14 +3,20 @@ import OpenGL.GLUT as glut
 import OpenGL.GLU as glu
 import math
 import random
+import time
 
-# Global variables
+# Global variables For Rain
+raindrops = []  # List of current raindrops
+rain_bend = 0.0  # Directional bend for raindrops
+max_raindrops = 250  # Maximum number of raindrops at any given time
+
+# Global variables for Tree, Leaves, Snow, Day, Season
 falling_leaves = []
 is_falling = False
 is_paused = False
 leaf_positions = []
 current_season = 1  # 1: Summer, 2: Rainy, 3: Winter
-raindrops = []
+# raindrops = []
 snowflakes = []
 leaf_fall_timer = 0
 leaf_fall_interval = 10  # Reduced interval for faster leaf falling
@@ -54,14 +60,14 @@ class Leaf:
 
 class Raindrop:
     def __init__(self):
-        self.x = random.randint(0, 800)
+        self.x = random.uniform(-400, 1200)
         self.y = 600
-        self.speed = random.uniform(5, 10)
+        self.speed = 8
 
     def update(self):
         if not is_paused:
             self.y -= self.speed
-            self.x -= self.speed * 0.5  # Add horizontal movement for slanted rain
+            self.x += rain_bend * 1.5
         return self.y > 0
 
 
@@ -240,14 +246,23 @@ def draw_falling_leaves():
         midpoint_circle(int(leaf.x), int(leaf.y), 8)
 
 
+# Drawing Rain
 def draw_rain():
     gl.glColor3f(0.5, 0.5, 1.0)  # Light blue for rain
-    gl.glLineWidth(2.0)  # Increased line width for larger raindrops
+    gl.glLineWidth(2.0)
     gl.glBegin(gl.GL_LINES)
     for raindrop in raindrops:
         gl.glVertex2f(raindrop.x, raindrop.y)
-        gl.glVertex2f(raindrop.x - 5, raindrop.y - 10)  # Slanted rain
+        gl.glVertex2f(raindrop.x + rain_bend * 1, raindrop.y - 15)  # Slanted rain
     gl.glEnd()
+
+
+def update_rain():
+    global raindrops
+    if not is_paused:
+        raindrops = [raindrop for raindrop in raindrops if raindrop.update()]
+        if len(raindrops) < max_raindrops:
+            raindrops.append(Raindrop())
 
 
 def draw_snow():
@@ -270,14 +285,6 @@ def update_falling_leaves():
             x, y = leaf_positions.pop(random.randint(0, len(leaf_positions) - 1))
             falling_leaves.append(Leaf(x, y, current_season))
             leaf_fall_timer = 0
-
-
-def update_rain():
-    global raindrops
-    if not is_paused:
-        raindrops = [raindrop for raindrop in raindrops if raindrop.update()]
-        if len(raindrops) < 200:
-            raindrops.append(Raindrop())
 
 
 def update_snow():
@@ -308,14 +315,25 @@ def keyboard(key, x, y):
     elif key in [b'1', b'2', b'3']:
         current_season = int(key)
         is_falling = False
-        falling_leaves.clear()
-        raindrops.clear()
-        snowflakes.clear()
-        leaf_positions.clear()
+        # falling_leaves.clear()
+        # raindrops.clear()
+        # snowflakes.clear()
+        # leaf_positions.clear()
     elif key == b'd' or key == b'D':
         is_day = True
     elif key == b'n' or key == b'N':
         is_day = False
+
+
+# For Rain Control
+def special_keys(key, x, y):
+    global rain_bend
+    if key == glut.GLUT_KEY_LEFT:
+        if rain_bend > -2:
+            rain_bend -= 1
+    elif key == glut.GLUT_KEY_RIGHT:
+        if rain_bend < 2:
+            rain_bend += 1
 
 
 def display():
@@ -362,6 +380,7 @@ def main():
     glut.glutDisplayFunc(display)
     glut.glutMouseFunc(mouse_click)
     glut.glutKeyboardFunc(keyboard)
+    glut.glutSpecialFunc(special_keys)
     glut.glutTimerFunc(0, timer, 0)
     glut.glutMainLoop()
 
