@@ -1,8 +1,12 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 import random
+import math
 
-from OpenGL.raw.GLU import gluOrtho2D
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+wind_strength = 0  # Global variable to track wind strength
+wind_direction = 0  # 0 for no wind, -1 for left to right, 1 for right to left
 
 
 def int_FindZone(x1, y1, x2, y2):
@@ -19,7 +23,6 @@ def int_FindZone(x1, y1, x2, y2):
             zone = 4
         elif dx > 0 and dy < 0:
             zone = 7
-
     else:
         if dx >= 0 and dy > 0:
             zone = 1
@@ -71,7 +74,7 @@ def convertToOriginal(x, y, zone):
 def drawPoint(x, y, size=2):
     glPointSize(size)
     glBegin(GL_POINTS)
-    glVertex2f(int(x), int(y))
+    glVertex2f(x / WINDOW_WIDTH * 2 - 1, y / WINDOW_HEIGHT * 2 - 1)
     glEnd()
 
 
@@ -101,42 +104,89 @@ def drawLine(x1, y1, x2, y2, color):
             d = d + incE
 
 
-def drawGrassBlade(x, y, height, width, color):
+def drawGrassBlade(x, y, height, width, color, bend):
+    # Calculate the bend at the top of the grass blade
+    bend_x = x + bend
+
     # Draw left side of the grass blade
-    drawLine(x, y, x - width // 2, y + height, color)
+    drawLine(x, y, bend_x - width // 2, y + height, color)
     # Draw right side of the grass blade
-    drawLine(x, y, x + width // 2, y + height, color)
+    drawLine(x, y, bend_x + width // 2, y + height, color)
+
+
+grass_blades = []
+
+
+def initializeGrass():
+    global grass_blades
+    grass_blades = []
+    for _ in range(100):  # Create 100 grass blades
+        x = random.randint(0, WINDOW_WIDTH)
+        y = random.randint(0, WINDOW_HEIGHT // 6)
+        height = random.randint(20, 60)
+        width = random.randint(5, 20)
+        green = random.uniform(0.4, 1.0)
+        color = (0, green, 0)
+        grass_blades.append({
+            'x': x,
+            'y': y,
+            'height': height,
+            'width': width,
+            'color': color,
+            'bend': 0
+        })
 
 
 def display():
+    global grass_blades, wind_strength, wind_direction
     glClear(GL_COLOR_BUFFER_BIT)
 
-    # Draw multiple grass blades
-    for _ in range(100):  # Draw 100 grass blades
-        x = random.randint(0, 800)  # Random x position
-        y = random.randint(0, 100)  # Random y position near the bottom
-        height = random.randint(20,60)  # Random height (shorter)
-        width = random.randint(5, 20)  # Random width (slightly narrower)
+    for blade in grass_blades:
+        # Update the bend of each grass blade based on wind
+        blade['bend'] += wind_strength * wind_direction
+        # Add some randomness to the movement
+        blade['bend'] += random.uniform(-0.5, 0.5)
+        # Limit the maximum bend
+        blade['bend'] = max(min(blade['bend'], blade['height'] // 2), -blade['height'] // 2)
 
-        # Generate a random shade of green
-        green = random.uniform(0.4, 1.0)
-        color = (0, green, 0)  # Green color with varying intensity
+        drawGrassBlade(blade['x'], blade['y'], blade['height'], blade['width'], blade['color'], blade['bend'])
 
-        drawGrassBlade(x, y, height, width, color)
+    # Gradually reduce wind strength
+    wind_strength *= 0.99
 
-    glFlush()
+    glutSwapBuffers()
+    glutPostRedisplay()
+
+
+def keyboard(key, x, y):
+    global wind_strength, wind_direction
+    if key == GLUT_KEY_LEFT:
+        wind_direction = -1  # Wind blows from left to right
+        wind_strength = min(wind_strength + 0.5, 10)
+    elif key == GLUT_KEY_RIGHT:
+        wind_direction = 1  # Wind blows from right to left
+        wind_strength = min(wind_strength + 0.5, 10)
+
+    glutPostRedisplay()
+
+
+def reshape(width, height):
+    glViewport(0, 0, width, height)
 
 
 def main():
     glutInit()
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-    glutInitWindowSize(800, 600)
-    glutCreateWindow(b"Grass Field")
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
+    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+    glutCreateWindow(b"Grass Wind Animation")
 
     glClearColor(0.529, 0.808, 0.922, 0.0)  # Sky blue background
-    gluOrtho2D(0, 800, 0, 600)
+
+    initializeGrass()
 
     glutDisplayFunc(display)
+    glutSpecialFunc(keyboard)  # Handle special key presses (arrow keys)
+    glutReshapeFunc(reshape)
     glutMainLoop()
 
 
