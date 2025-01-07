@@ -16,6 +16,7 @@ leaf_fall_timer = 0
 leaf_fall_interval = 10  # Reduced interval for faster leaf falling
 is_day = True  # New variable for day/night mode
 
+
 class Leaf:
     def __init__(self, x, y, season):
         self.x = x
@@ -50,6 +51,7 @@ class Leaf:
 
         return self.y > 100
 
+
 class Raindrop:
     def __init__(self):
         self.x = random.randint(0, 800)
@@ -61,6 +63,7 @@ class Raindrop:
             self.y -= self.speed
             self.x -= self.speed * 0.5  # Add horizontal movement for slanted rain
         return self.y > 0
+
 
 class Snowflake:
     def __init__(self):
@@ -81,10 +84,12 @@ def init():
     gl.glLoadIdentity()
     glu.gluOrtho2D(0, 800, 0, 600)
 
+
 def draw_pixel(x, y):
     gl.glBegin(gl.GL_POINTS)
     gl.glVertex2f(x, y)
     gl.glEnd()
+
 
 def midpoint_line(x1, y1, x2, y2):
     dx = abs(x2 - x1)
@@ -114,6 +119,7 @@ def midpoint_line(x1, y1, x2, y2):
             p += 2 * dx
     draw_pixel(x, y)
 
+
 def midpoint_circle(center_x, center_y, radius):
     x, y = 0, radius
     p = 1 - radius
@@ -137,45 +143,48 @@ def midpoint_circle(center_x, center_y, radius):
             y -= 1
             p += 2 * (x - y) + 1
 
-def draw_stem(x, y):
-    gl.glColor3f(0.545, 0.271, 0.075) #Stem color
-    midpoint_line(int(x)-15, int(y), int(x)-15, int(y)+108)
-    midpoint_line(int(x)+15, int(y), int(x)+15, int(y)+108)
-    midpoint_line(int(x)-14, int(y), int(x)-14, int(y)+108)
-    midpoint_line(int(x)+14, int(y), int(x)+14, int(y)+108)
 
-def draw_tree(x, y, length, angle, depth): 
+def draw_stem(x, y):
+    gl.glColor3f(0.545, 0.271, 0.075)  # Stem color
+    midpoint_line(int(x) - 15, int(y), int(x) - 15, int(y) + 108)
+    midpoint_line(int(x) + 15, int(y), int(x) + 15, int(y) + 108)
+    midpoint_line(int(x) - 14, int(y), int(x) - 14, int(y) + 108)
+    midpoint_line(int(x) + 14, int(y), int(x) + 14, int(y) + 108)
+
+
+def draw_tree(x, y, length, angle, depth):
     if depth > 0:
         x2 = x + length * math.cos(math.radians(angle))
         y2 = y + length * math.sin(math.radians(angle))
 
         # Draw branch
-        gl.glColor3f(0.545, 0.271, 0.075) #Branch color
+        gl.glColor3f(0.545, 0.271, 0.075)  # Branch color
         if angle != 90:
             midpoint_line(int(x), int(y), int(x2), int(y2))
-            midpoint_line(int(x)-1, int(y)+1, int(x2)+1, int(y2)+1)
+            midpoint_line(int(x) - 1, int(y) + 1, int(x2) + 1, int(y2) + 1)
 
         # Store leaf positions at terminal branches
         # if depth <= 1:
         #     leaf_positions.append((int(x2), int(y2)))
-            # if not is_falling:  # Only draw leaves if they haven't started falling
-            #     if current_season == 1:
-            #         gl.glColor3f(0.0, 0.8, 0.0)  # Bright green for summer
-            #     elif current_season == 2:
-            #         gl.glColor3f(0.0, 0.5, 0.0)  # Dark green for rainy season
-            #     else:
-            #         gl.glColor3f(1.0, 0.75, 0.8)  # Pink for winter
-            #     midpoint_circle(int(x2), int(y2), 3)
+        # if not is_falling:  # Only draw leaves if they haven't started falling
+        #     if current_season == 1:
+        #         gl.glColor3f(0.0, 0.8, 0.0)  # Bright green for summer
+        #     elif current_season == 2:
+        #         gl.glColor3f(0.0, 0.5, 0.0)  # Dark green for rainy season
+        #     else:
+        #         gl.glColor3f(1.0, 0.75, 0.8)  # Pink for winter
+        #     midpoint_circle(int(x2), int(y2), 3)
 
         new_length = length * 0.7
         draw_tree(x2, y2, new_length, angle - 20, depth - 3)
         draw_tree(x2, y2, new_length, angle + 20, depth - 3)
-        draw_tree(x2, y2, new_length-1, angle - 60, depth - 3)
-        draw_tree(x2, y2, new_length-1, angle + 60, depth - 3)
-
+        draw_tree(x2, y2, new_length - 1, angle - 60, depth - 3)
+        draw_tree(x2, y2, new_length - 1, angle + 60, depth - 3)
 
 
 min_distance = 10  # Minimum distance between the centers of the leaves
+
+
 def draw_leaves(x_center, y_center, radius):
     global leaf_positions
     leaf_radius = 8  # Radius of individual leaves
@@ -186,11 +195,11 @@ def draw_leaves(x_center, y_center, radius):
         for i in range(num_leaves):
             # Calculate the angle for this leaf's position (evenly spaced around the circle)
             angle = random.uniform(0, 2 * math.pi)
-            
+
             # Increase spread by adjusting the radius differently for x and y axes
             x_distance = random.uniform(0, radius * 2.6)  # Wider spread on x-axis
             y_distance = random.uniform(0, radius + 25)  # Normal spread on y-axis
-            
+
             # Calculate the potential new leaf's position using polar coordinates
             leaf_x = x_center + x_distance * math.cos(angle)
             leaf_y = y_center + y_distance * math.sin(angle)
@@ -198,14 +207,14 @@ def draw_leaves(x_center, y_center, radius):
             # Ensure no new leaf is too close to an existing one
             too_close = False
             for existing_x, existing_y in leaf_positions:
-                distance = math.sqrt((leaf_x - existing_x)**2 + (leaf_y - existing_y)**2)
+                distance = math.sqrt((leaf_x - existing_x) ** 2 + (leaf_y - existing_y) ** 2)
                 if distance < min_distance:  # Check if the new leaf is too close
                     too_close = True
                     break
-            
+
             if too_close:
                 continue
-            
+
             # Store the leaf's position
             leaf_positions.append((int(leaf_x), int(leaf_y)))
 
@@ -213,7 +222,6 @@ def draw_leaves(x_center, y_center, radius):
     gl.glColor3f(0.0, 0.8, 0.0)  # Bright green (default)
     for leaf_x, leaf_y in leaf_positions:
         midpoint_circle(leaf_x, leaf_y, leaf_radius)
-
 
 
 def draw_ground():
@@ -225,10 +233,12 @@ def draw_ground():
     gl.glVertex2f(0, 100)
     gl.glEnd()
 
+
 def draw_falling_leaves():
     for leaf in falling_leaves:
         gl.glColor3f(leaf.color[0], leaf.color[1], leaf.color[2])
         midpoint_circle(int(leaf.x), int(leaf.y), 8)
+
 
 def draw_rain():
     gl.glColor3f(0.5, 0.5, 1.0)  # Light blue for rain
@@ -239,6 +249,7 @@ def draw_rain():
         gl.glVertex2f(raindrop.x - 5, raindrop.y - 10)  # Slanted rain
     gl.glEnd()
 
+
 def draw_snow():
     gl.glColor3f(1.0, 1.0, 1.0)  # White for snow
     gl.glPointSize(5.0)  # Increased point size for larger snowflakes
@@ -246,6 +257,7 @@ def draw_snow():
     for snowflake in snowflakes:
         gl.glVertex2f(snowflake.x, snowflake.y)
     gl.glEnd()
+
 
 def update_falling_leaves():
     global falling_leaves, leaf_fall_timer
@@ -259,12 +271,14 @@ def update_falling_leaves():
             falling_leaves.append(Leaf(x, y, current_season))
             leaf_fall_timer = 0
 
+
 def update_rain():
     global raindrops
     if not is_paused:
         raindrops = [raindrop for raindrop in raindrops if raindrop.update()]
         if len(raindrops) < 200:
             raindrops.append(Raindrop())
+
 
 def update_snow():
     global snowflakes
@@ -273,10 +287,12 @@ def update_snow():
         if len(snowflakes) < 100:
             snowflakes.append(Snowflake())
 
+
 def mouse_click(button, state, x, y):
     global is_falling
     if button == glut.GLUT_LEFT_BUTTON and state == glut.GLUT_DOWN:
         is_falling = True
+
 
 def keyboard(key, x, y):
     global is_paused, is_falling, falling_leaves, current_season, raindrops, snowflakes, leaf_positions, is_day
@@ -300,6 +316,7 @@ def keyboard(key, x, y):
         is_day = True
     elif key == b'n' or key == b'N':
         is_day = False
+
 
 def display():
     if is_day:
@@ -329,9 +346,11 @@ def display():
 
     glut.glutSwapBuffers()
 
+
 def timer(value):
     glut.glutPostRedisplay()
     glut.glutTimerFunc(16, timer, 0)  # 60 FPS approximately
+
 
 def main():
     glut.glutInit()
@@ -345,6 +364,7 @@ def main():
     glut.glutKeyboardFunc(keyboard)
     glut.glutTimerFunc(0, timer, 0)
     glut.glutMainLoop()
+
 
 if __name__ == "__main__":
     main()
