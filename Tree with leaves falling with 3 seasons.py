@@ -3,7 +3,7 @@ import OpenGL.GLUT as glut
 import OpenGL.GLU as glu
 import math
 import random
-import time
+import numpy as np
 
 # Window dimensions
 WINDOW_WIDTH = 800
@@ -126,12 +126,12 @@ class GrassBlade:
     def draw(self):
         bend_x = self.x + self.bend
         gl.glColor3f(*self.color)
-        gl.glBegin(gl.GL_LINES)
-        gl.glVertex2f(self.x, self.y)
-        gl.glVertex2f((bend_x - self.width // 2), (self.y + self.height))
-        gl.glVertex2f(self.x, self.y)
-        gl.glVertex2f((bend_x + self.width // 2), (self.y + self.height))
-        gl.glEnd()
+
+        # Draw left slanted line
+        midpoint_line(self.x, self.y, (bend_x - self.width // 2), (self.y + self.height))
+
+        # Draw right slanted line
+        midpoint_line(self.x, self.y, (bend_x + self.width // 2), (self.y + self.height))
 
     def update(self, wind_strength, wind_direction):
         self.bend += wind_strength * wind_direction
@@ -384,16 +384,22 @@ class CelestialBodyManager:
 # celestialBody Instance
 celestial_manager = CelestialBodyManager()
 
-
 # Drawing the ground
+# Precompute points for the ground
+ground_points = [(x, y) for x in range(0, 800, 4) for y in range(0, 100, 4)]
+
+
 def draw_ground():
-    gl.glColor3f(0.0, 0.8, 0.0)
-    gl.glBegin(gl.GL_QUADS)
-    gl.glVertex2f(0, 0)
-    gl.glVertex2f(800, 0)
-    gl.glVertex2f(800, 100)
-    gl.glVertex2f(0, 100)
+    """
+    Optimized ground drawing using precomputed points.
+    """
+    gl.glPointSize(5.0)
+    gl.glColor3f(0.0, 0.8, 0.0)  # Set ground color (green)
+    gl.glBegin(gl.GL_POINTS)
+    for x, y in ground_points:
+        gl.glVertex2f(x, y)  # Use precomputed points
     gl.glEnd()
+    gl.glPointSize(2.0)
 
 
 def draw_falling_leaves():
@@ -405,12 +411,15 @@ def draw_falling_leaves():
 # Drawing Rain
 def draw_rain():
     gl.glColor3f(0.5, 0.5, 1.0)  # Light blue for rain
-    gl.glLineWidth(2.0)
-    gl.glBegin(gl.GL_LINES)
     for raindrop in raindrops:
-        gl.glVertex2f(raindrop.x, raindrop.y)
-        gl.glVertex2f(raindrop.x + rain_bend * 1, raindrop.y - 15)  # Slanted rain
-    gl.glEnd()
+        # Calculate the start and end points for each raindrop
+        x_start = raindrop.x
+        y_start = raindrop.y
+        x_end = raindrop.x + rain_bend * 1
+        y_end = raindrop.y - 15
+
+        # Use the midpoint_line function to draw each raindrop
+        midpoint_line(x_start, y_start, x_end, y_end)
 
 
 def update_rain():

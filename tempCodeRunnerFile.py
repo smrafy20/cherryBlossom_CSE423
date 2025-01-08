@@ -1,1 +1,1 @@
-glut.glutPostRedisplay()
+4
