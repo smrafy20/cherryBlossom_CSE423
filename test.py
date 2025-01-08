@@ -397,13 +397,13 @@ celestial_manager = CelestialBodyManager()
 
 #Drawing the ground
 # Precompute points for the ground
-ground_points = [(x, y) for x in range(0, 800, 4) for y in range(0, 100, 4)]
+ground_points = [(x, y) for x in range(0, 816, 8) for y in range(0, 100, 8)]
 
 def draw_ground():
     """
     Optimized ground drawing using precomputed points.
     """
-    gl.glPointSize(5.0)
+    gl.glPointSize(10.0)
     gl.glColor3f(0.0, 0.8, 0.0)  # Set ground color (green)
     gl.glBegin(gl.GL_POINTS)
     for x, y in ground_points:
