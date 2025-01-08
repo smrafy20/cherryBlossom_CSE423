@@ -3,7 +3,8 @@ import OpenGL.GLUT as glut
 import OpenGL.GLU as glu
 import math
 import random
-import time
+
+
 
 # Window dimensions
 WINDOW_WIDTH = 800
